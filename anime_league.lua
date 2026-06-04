@@ -1,10 +1,10 @@
-local Players = game:GetService("Players")
-local player = Players.LocalPlayer
+local target = workspace:WaitForChild("AgentRollEnvironment")
+	:WaitForChild("Character")
+	:WaitForChild("HumanoidRootPart")
 
 local gui = Instance.new("ScreenGui")
-gui.Name = "PositionTracerGUI"
 gui.ResetOnSpawn = false
-gui.Parent = player:WaitForChild("PlayerGui")
+gui.Parent = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
 
 local button = Instance.new("TextButton")
 button.Size = UDim2.new(0, 150, 0, 40)
@@ -13,39 +13,26 @@ button.Text = "Tracer: OFF"
 button.Parent = gui
 
 local enabled = false
-local loopRunning = false
 
 button.MouseButton1Click:Connect(function()
 	enabled = not enabled
 	button.Text = enabled and "Tracer: ON" or "Tracer: OFF"
+end)
 
-	if enabled and not loopRunning then
-		loopRunning = true
+task.spawn(function()
+	while true do
+		if enabled and target then
+			local marker = Instance.new("Part")
+			marker.Shape = Enum.PartType.Ball
+			marker.Size = Vector3.new(1, 1, 1)
+			marker.Anchored = true
+			marker.CanCollide = false
+			marker.Position = target.Position
+			marker.Parent = workspace
 
-		task.spawn(function()
-			while enabled do
-				local character = player.Character
-				if character then
-					local hrp = character:FindFirstChild("HumanoidRootPart")
-					if hrp then
-						local marker = Instance.new("Part")
-						marker.Shape = Enum.PartType.Ball
-						marker.Size = Vector3.new(0.5, 0.5, 0.5)
-						marker.Anchored = true
-						marker.CanCollide = false
-						marker.Position = hrp.Position
-						marker.Parent = workspace
+			game:GetService("Debris"):AddItem(marker, 10)
+		end
 
-						task.delay(10, function()
-							if marker then
-								marker:Destroy()
-							end
-						end)
-					end
-				end
-				task.wait(0.5)
-			end
-			loopRunning = false
-		end)
+		task.wait(0.25)
 	end
 end)
