@@ -4,79 +4,103 @@ local Debris = game:GetService("Debris")
 
 local LocalPlayer = Players.LocalPlayer
 
-local enabled = false
-local tracked = {}
+local ENABLED = false
+local ACTIVE = {}
 
 -- GUI
 local gui = Instance.new("ScreenGui")
-gui.Name = "DevTrailGUI"
+gui.Name = "DevVisualizer"
 gui.ResetOnSpawn = false
 gui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
 local button = Instance.new("TextButton")
-button.Size = UDim2.new(0, 180, 0, 50)
+button.Size = UDim2.new(0, 220, 0, 60)
 button.Position = UDim2.new(0, 20, 0, 20)
-button.Text = "Trails: OFF"
+button.Text = "VISUALIZER: OFF"
 button.TextScaled = true
 button.Parent = gui
 
 button.MouseButton1Click:Connect(function()
-	enabled = not enabled
-	button.Text = enabled and "Trails: ON" or "Trails: OFF"
+	ENABLED = not ENABLED
+	button.Text = ENABLED and "VISUALIZER: ON" or "VISUALIZER: OFF"
 end)
 
-local function startTrail(character)
-	if tracked[character] then
+local function addHighlight(character)
+	if character:FindFirstChild("DevHighlight") then
 		return
 	end
 
-	tracked[character] = true
+	local hl = Instance.new("Highlight")
+	hl.Name = "DevHighlight"
+	hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+	hl.FillColor = Color3.fromRGB(0, 255, 255)
+	hl.OutlineColor = Color3.fromRGB(255, 255, 255)
+	hl.FillTransparency = 0.4
+	hl.OutlineTransparency = 0
+	hl.Parent = character
+end
+
+local function startVisuals(character)
+	if ACTIVE[character] then
+		return
+	end
+
+	ACTIVE[character] = true
+
+	addHighlight(character)
 
 	task.spawn(function()
 		local root = character:FindFirstChild("HumanoidRootPart")
 			or character:WaitForChild("HumanoidRootPart", 10)
 
 		if not root then
-			tracked[character] = nil
+			ACTIVE[character] = nil
 			return
 		end
 
 		while character.Parent do
-			if enabled then
+			if ENABLED then
 				local orb = Instance.new("Part")
 				orb.Shape = Enum.PartType.Ball
-				orb.Size = Vector3.new(1, 1, 1)
-				orb.Position = root.Position + Vector3.new(0, 1, 0)
+				orb.Size = Vector3.new(6, 6, 6)
+				orb.Position = root.Position + Vector3.new(0, 3, 0)
 				orb.Anchored = true
 				orb.CanCollide = false
 				orb.Material = Enum.Material.Neon
+				orb.Transparency = 0.15
+				orb.Color = Color3.fromRGB(0, 255, 255)
 				orb.Parent = workspace
+
+				local light = Instance.new("PointLight")
+				light.Range = 35
+				light.Brightness = 8
+				light.Parent = orb
 
 				TweenService:Create(
 					orb,
-					TweenInfo.new(1.5),
+					TweenInfo.new(2.5),
 					{
 						Transparency = 1,
-						Size = Vector3.new(0.1, 0.1, 0.1)
+						Size = Vector3.new(12, 12, 12)
 					}
 				):Play()
 
-				Debris:AddItem(orb, 1.5)
+				Debris:AddItem(orb, 2.5)
 			end
 
-			task.wait(0.05)
+			task.wait(0.03)
 		end
 
-		tracked[character] = nil
+		ACTIVE[character] = nil
 	end)
 end
 
 local function setupPlayer(player)
 	if player.Character then
-		startTrail(player.Character)
+		startVisuals(player.Character)
 	end
 
-	player.CharacterAdded:Connect(startTrail)
+	player.CharacterAdded:Connect(startVisuals)
 end
 
 for _, player in ipairs(Players:GetPlayers()) do
