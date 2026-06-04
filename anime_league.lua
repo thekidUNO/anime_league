@@ -1,70 +1,51 @@
 local Players = game:GetService("Players")
-
 local player = Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui")
 
-local enabled = true
-local trackers = {}
+local gui = Instance.new("ScreenGui")
+gui.Name = "PositionTracerGUI"
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")
 
--- GUI
-local screenGui = Instance.new("ScreenGui")
-screenGui.ResetOnSpawn = false
-screenGui.Parent = playerGui
+local button = Instance.new("TextButton")
+button.Size = UDim2.new(0, 150, 0, 40)
+button.Position = UDim2.new(0, 20, 0, 20)
+button.Text = "Tracer: OFF"
+button.Parent = gui
 
-local toggleButton = Instance.new("TextButton")
-toggleButton.Size = UDim2.new(0, 120, 0, 40)
-toggleButton.Position = UDim2.new(0, 10, 0, 10)
-toggleButton.Text = "Tracker: ON"
-toggleButton.Parent = screenGui
+local enabled = false
+local loopRunning = false
 
-local function updateVisibility()
-	for _, tracker in pairs(trackers) do
-		if tracker then
-			tracker.Enabled = enabled
-		end
-	end
-
-	toggleButton.Text = enabled and "Tracker: ON" or "Tracker: OFF"
-end
-
-toggleButton.MouseButton1Click:Connect(function()
+button.MouseButton1Click:Connect(function()
 	enabled = not enabled
-	updateVisibility()
-end)
+	button.Text = enabled and "Tracer: ON" or "Tracer: OFF"
 
-local function createTracker(character)
-	local head = character:FindFirstChild("Head")
-	if not head then return end
+	if enabled and not loopRunning then
+		loopRunning = true
 
-	local billboard = Instance.new("BillboardGui")
-	billboard.Name = "DebugTracker"
-	billboard.Size = UDim2.new(0, 150, 0, 40)
-	billboard.StudsOffset = Vector3.new(0, 3, 0)
-	billboard.AlwaysOnTop = true
-	billboard.Enabled = enabled
-	billboard.Parent = head
+		task.spawn(function()
+			while enabled do
+				local character = player.Character
+				if character then
+					local hrp = character:FindFirstChild("HumanoidRootPart")
+					if hrp then
+						local marker = Instance.new("Part")
+						marker.Shape = Enum.PartType.Ball
+						marker.Size = Vector3.new(0.5, 0.5, 0.5)
+						marker.Anchored = true
+						marker.CanCollide = false
+						marker.Position = hrp.Position
+						marker.Parent = workspace
 
-	local label = Instance.new("TextLabel")
-	label.Size = UDim2.fromScale(1, 1)
-	label.BackgroundTransparency = 1
-	label.TextScaled = true
-	label.Text = character.Name
-	label.Parent = billboard
-
-	trackers[character] = billboard
-end
-
-local container = workspace:WaitForChild("AgentRollEnvironment")
-
-for _, obj in ipairs(container:GetChildren()) do
-	if obj:IsA("Model") then
-		createTracker(obj)
-	end
-end
-
-container.ChildAdded:Connect(function(obj)
-	if obj:IsA("Model") then
-		task.wait(0.5)
-		createTracker(obj)
+						task.delay(10, function()
+							if marker then
+								marker:Destroy()
+							end
+						end)
+					end
+				end
+				task.wait(0.5)
+			end
+			loopRunning = false
+		end)
 	end
 end)
